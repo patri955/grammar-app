@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <title>Grammar Practice App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    body { -webkit-text-size-adjust: 100%; }
+    input[type="text"] { font-size: 18px !important; }
+    button { touch-action: manipulation; cursor: pointer; }
+    .btn-check {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+      font-size: 1.25rem;
+      font-weight: 700;
+      padding: 1.1rem 2rem;
+      border-radius: 1rem;
+      width: 100%;
+      border: none;
+      box-shadow: 0 4px 14px rgba(34,197,94,0.4);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .btn-check:active { transform: scale(0.97); box-shadow: 0 2px 8px rgba(34,197,94,0.3); }
+    .game-input {
+      font-size: 18px;
+      padding: 14px 18px;
+      border: 2.5px solid #d1d5db;
+      border-radius: 0.75rem;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .game-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col items-center justify-start p-4 pt-6">
+
+  <!-- Pantalla 1 - Selección de Categoría -->
+  <div id="category-screen" class="w-full max-w-lg p-6 bg-white rounded-3xl shadow-xl">
+    <h1 class="text-3xl font-extrabold text-center text-gray-800 mb-4">🎓 Grammar Practice</h1>
+    <p class="text-center text-gray-500 mb-6 text-base">Elige una categoría para practicar</p>
+    <div class="flex flex-col gap-4">
+      <button onclick="goToSubcategories('present')" class="bg-blue-500 active:bg-blue-700 text-white text-xl font-bold px-6 py-5 rounded-2xl w-full shadow-md">🔵 Present</button>
+      <button onclick="goToSubcategories('past')" class="bg-rose-500 active:bg-rose-700 text-white text-xl font-bold px-6 py-5 rounded-2xl w-full shadow-md">🔴 Past</button>
+      <button onclick="goToSubcategories('future')" class="bg-purple-600 active:bg-purple-800 text-white text-xl font-bold px-6 py-5 rounded-2xl w-full shadow-md">🟣 Future</button>
+      <button onclick="goToSubcategories('gerund')" class="bg-emerald-500 active:bg-emerald-700 text-white text-xl font-bold px-6 py-5 rounded-2xl w-full shadow-md">🟢 Gerund</button>
+      <button onclick="startMixtGame()" class="bg-amber-400 active:bg-amber-600 text-white text-xl font-bold px-6 py-5 rounded-2xl w-full shadow-md">🌈 Mixt</button>
+    </div>
+  </div>
+
+  <!-- Pantalla 2 - Subcategorías según la categoría seleccionada -->
+  <div id="subcategory-screen" class="hidden w-full max-w-lg p-6 bg-white rounded-3xl shadow-xl">
+    <h1 class="text-2xl font-extrabold text-center mb-2" id="subcategory-title"></h1>
+    <p class="text-center text-gray-500 mb-5 text-base">Selecciona una subcategoría</p>
+    <div class="flex flex-col gap-4" id="subcategory-buttons">
+      <!-- Los botones de subcategoría se generarán aquí -->
+    </div>
+    <div class="mt-5">
+      <button onclick="goToMainMenu()" class="bg-orange-500 active:bg-orange-700 text-white text-lg font-bold px-6 py-4 rounded-2xl w-full shadow-md">← Menú Principal</button>
+    </div>
+  </div>
+
+  <!-- Pantalla de Juego -->
+  <div id="game-screen" class="hidden w-full max-w-lg bg-white rounded-3xl shadow-xl overflow-hidden">
+    <!-- Header -->
+    <div class="bg-gray-50 px-5 pt-5 pb-4 border-b border-gray-100">
+      <h1 class="text-xl font-extrabold text-center" id="category-title">Juego</h1>
+      <div id="question-counter" class="text-center text-gray-500 text-sm font-medium mt-1"></div>
+    </div>
+
+    <!-- Pregunta -->
+    <div class="px-5 py-5">
+      <div id="sentence" class="text-lg text-center text-gray-800 font-semibold leading-relaxed min-h-16"></div>
+    </div>
+
+    <!-- Input + botón Comprobar -->
+    <div class="px-5 pb-4">
+      <input type="text" id="user-input" class="game-input mb-3" placeholder="Escribe tu respuesta aquí..." autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
+      <button onclick="checkAnswer()" id="check-button" class="btn-check">✅ Comprobar</button>
+    </div>
+
+    <!-- Feedback -->
+    <div id="feedback" class="text-center px-5 text-lg font-bold min-h-7"></div>
+    <div id="translation" class="text-center px-5 mt-1 text-gray-500 text-sm hidden pb-2"></div>
+    <div id="clue" class="text-center px-5 mt-1 text-blue-700 font-semibold text-sm hidden pb-2"></div>
+
+    <!-- Botón Siguiente (aparece tras comprobar) -->
+    <div class="px-5 pb-4 mt-2">
+      <button onclick="nextSentence()" id="next-button"
+        class="bg-lime-500 active:bg-lime-700 text-white text-lg font-bold px-6 py-4 rounded-2xl w-full shadow-md opacity-50 cursor-not-allowed"
+        disabled>Siguiente Pregunta →</button>
+    </div>
+
+    <!-- Marcador -->
+    <div class="flex items-center justify-center gap-4 px-5 py-3 bg-gray-50 border-t border-gray-100">
+      <span class="text-green-600 font-bold text-base">✅ <span id="correct">0</span></span>
+      <span class="text-gray-300 text-xl">|</span>
+      <span class="text-red-500 font-bold text-base">❌ <span id="incorrect">0</span></span>
+      <button id="retry-button" onclick="retryFailedQuestions()"
+        class="bg-red-500 active:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-bold"
+        style="display:none;">
+        Reintentar falladas
+      </button>
+    </div>
+
+    <!-- Botones secundarios -->
+    <div class="px-5 py-4 flex flex-col gap-3 border-t border-gray-100">
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="showClue()" class="bg-pink-500 active:bg-pink-700 text-white text-base font-bold py-4 rounded-2xl shadow-md">💡 Pista</button>
+        <button onclick="showTranslation()" class="bg-indigo-500 active:bg-indigo-700 text-white text-base font-bold py-4 rounded-2xl shadow-md">🌍 Traducción</button>
+      </div>
+      <button onclick="goToMainMenu()" class="bg-orange-500 active:bg-orange-700 text-white text-base font-bold py-4 rounded-2xl w-full shadow-md">← Menú Principal</button>
+    </div>
+  </div>
+
+  <script>
+    const categoryScreen = document.getElementById('category-screen');
+    const subcategoryScreen = document.getElementById('subcategory-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const categoryTitle = document.getElementById('category-title');
+    const sentenceEl = document.getElementById('sentence');
+    const inputEl = document.getElementById('user-input');
+    const feedbackEl = document.getElementById('feedback');
+    const correctEl = document.getElementById('correct');
+    const incorrectEl = document.getElementById('incorrect');
+    const translationEl = document.getElementById('translation');
+    const clueEl = document.getElementById('clue');
+    const subcategoryButtons = document.getElementById('subcategory-buttons');
+    const subcategoryTitle = document.getElementById('subcategory-title');
+    const questionCounterEl = document.getElementById('question-counter');
+    const nextButton = document.getElementById('next-button');
+    const retryButton = document.getElementById('retry-button');
+
+    let current = 0;
+    let correctCount = 0;
+    let incorrectCount = 0;
+    let currentSentences = [];
+    let currentCategory = '';
+    let currentSubcategory = '';
+    const failedQuestionsByCategory = {};
+
+// Datos de las categorías
+const allSentences = {
+  present: {
+    simple: [
+    { text: "He ___ (supervisar) tasks and ___ (motivar) the team effectively.", answer: "supervises, motivates", translation: "Él supervisa tareas y motiva al equipo de manera efectiva.", tense: "Present Simple" },
+    { text: "They ___ (revisar) documents and ___ (ajustar) their strategies weekly.", answer: "review, adjust", translation: "Ellos revisan documentos y ajustan sus estrategias semanalmente.", tense: "Present Simple" },
+    { text: "She ___ (apoyar) her teammates and ___ (manejar) conflict diplomatically.", answer: "supports, handles", translation: "Ella apoya a sus compañeros y maneja los conflictos diplomáticamente.", tense: "Present Simple" },
+    { text: "He ___ (evitar) distractions and ___ (cumplir) his objectives on time.", answer: "avoids, meets", translation: "Él evita distracciones y cumple sus objetivos a tiempo.", tense: "Present Simple" },
+    { text: "They ___ (reconocer) effort and ___ (alentar/ encourager) collaboration.", answer: "recognize, encourage", translation: "Ellos reconocen el esfuerzo y alientan la colaboración.", tense: "Present Simple" },
+    { text: "I ___ (adquirir) new skills and ___ (utilizar) them in real scenarios.", answer: "acquire, use", translation: "Adquiero nuevas habilidades y las utilizo en situaciones reales.", tense: "Present Simple" },
+    { text: "She ___ (desarrollar) creative solutions and ___ (presentar) them clearly.", answer: "develops, presents", translation: "Ella desarrolla soluciones creativas y las presenta claramente.", tense: "Present Simple" },
+    { text: "He ___ (examinar) data and ___ (tomar) informed decisions.", answer: "examines, makes", translation: "Él examina datos y toma decisiones informadas.", tense: "Present Simple" },
+    { text: "They ___ (cooperar) with colleagues and ___ (finalizar) tasks on time.", answer: "cooperate, complete", translation: "Ellos cooperan con colegas y finalizan tareas a tiempo.", tense: "Present Simple" },
+    { text: "I ___ (reforzar) my knowledge and ___ (preparar) daily reports.", answer: "strengthen, prepare", translation: "Refuerzo mis conocimientos y preparo informes diarios.", tense: "Present Simple" },
+    { text: "She ___ (dirigir) the team and ___ (aplicar) strategic planning.", answer: "leads, applies", translation: "Ella dirige al equipo y aplica planificación estratégica.", tense: "Present Simple" },
+    { text: "He ___ (inspirar) others and ___ (mostrar) dedication.", answer: "inspires, shows", translation: "Él inspira a otros y muestra dedicación.", tense: "Present Simple" },
+    { text: "We ___ (seguir) standards and ___ (medir) results regularly.", answer: "follow, measure", translation: "Seguimos estándares y medimos resultados regularmente.", tense: "Present Simple" },
+    { text: "She ___ (impulsar) teamwork and ___ (expresar) her ideas clearly.", answer: "promotes, expresses", translation: "Ella impulsa el trabajo en equipo y expresa sus ideas claramente.", tense: "Present Simple" },
+    { text: "They ___ (valorar) achievements and ___ (invertir) in their growth.", answer: "value, invest", translation: "Ellos valoran los logros e invierten en su crecimiento.", tense: "Present Simple" },
+    { text: "I ___ (evitar) working late and ___ (preferir) balance.", answer: "avoid, prefer", translation: "Evito trabajar hasta tarde y prefiero el equilibrio.", tense: "Present Simple" },
+    { text: "She ___ (rechazar) poor practices and ___ (defender) best practices.", answer: "rejects, promotes", translation: "Ella rechaza malas prácticas y promueve buenas prácticas.", tense: "Present Simple" },
+    { text: "He ___ (no priorizar) tasks well and ___ (no delegar) responsibilities.", answer: "doesn't prioritize, doesn't delegate", translation: "Él no prioriza bien las tareas y no delega responsabilidades.", tense: "Present Simple" },
+    { text: "We ___ (no desperdiciar) resources or ___ (descuidar) details.", answer: "don't waste, overlook", translation: "No desperdiciamos recursos ni descuidamos detalles.", tense: "Present Simple" },
+    { text: "I ___ (no confiar) in speculation or ___ (seguir) unreliable sources.", answer: "don't trust, follow", translation: "No confío en especulaciones ni sigo fuentes no confiables.", tense: "Present Simple" },
+    { text: "She ___ (no gestionar) time well or ___ (no equilibrar) priorities.", answer: "doesn't manage, balance", translation: "Ella no gestiona bien el tiempo ni equilibra prioridades.", tense: "Present Simple" },
+    { text: "He ___ (no aceptar) weak arguments and ___ (no ignorar) feedback.", answer: "doesn't accept, doesn't ignore", translation: "Él no acepta argumentos débiles y no ignora la retroalimentación.", tense: "Present Simple" },
+    { text: "I ___ (no promover) shortcuts or ___ (usar) untested methods.", answer: "don't promote, use", translation: "No promuevo atajos ni uso métodos no probados.", tense: "Present Simple" },
+    { text: "___ he ___ (asistir) to briefings and ___ (contribuir) meaningfully?", answer: "Does, attend, contribute", translation: "¿Asiste él a reuniones informativas y contribuye significativamente?", tense: "Present Simple" },
+    { text: "___ they ___ (respetar) deadlines and ___ (producir) quality results?", answer: "Do, respect, produce", translation: "¿Respetan ellos los plazos y producen resultados de calidad?", tense: "Present Simple" },
+    { text: "___ you ___ (usar) tools and ___ (optimizar) workflows?", answer: "Do, use, optimize", translation: "¿Usas herramientas y optimizas los flujos de trabajo?", tense: "Present Simple" },
+    { text: "___ she ___ (colaborar) on tasks and ___ (tomar) the lead?", answer: "Does, collaborate, take", translation: "¿Colabora ella en tareas y toma la iniciativa?", tense: "Present Simple" },
+    { text: "___ they ___ (lograr) goals and continuously ___ (crecer)?", answer: "Do, achieve, grow", translation: "¿Logran ellos objetivos y crecen continuamente?", tense: "Present Simple" },
+    { text: "___he ___ (gestionar) his calendar to stay on track?", answer: "Does, manage", translation: "¿Gestiona él su calendario para mantenerse enfocado?", tense: "Present Simple" },
+    { text: "___ they ___ (asignar) resources and ___ (asistir) training sessions?", answer: "Do, assing, attend", translation: "¿Asignan ellos recursos y asisten a sesiones de capacitación?", tense: "Present Simple" }
+ ], 
+  continuous: [
+      { text: "She ___ (manejar) the negotiations and ___ (resolver) issues effectively.", answer: "is handling, solving", translation: "Ella está manejando las negociaciones y resolviendo problemas eficazmente.", tense: "Present Continuous" },
+      { text: "We ___ (explorar) new ideas and ___ (mejorar) our strategies this week.", answer: "are exploring,  improving", translation: "Estamos explorando nuevas ideas y mejorando nuestras estrategias esta semana.", tense: "Present Continuous" },
+      { text: "The team ___ (preparar) the presentation and ___ (practicar) for the big meeting.", answer: "is preparing,  practicing", translation: "El equipo está preparando la presentación y practicando para la gran reunión.", tense: "Present Continuous" },
+      { text: "You ___ (demostrar) great skills and ___ (aprender) quickly.", answer: "are demonstrating, are learning", translation: "Estás demostrando grandes habilidades y aprendiendo rápido.", tense: "Present Continuous" },
+      { text: "They ___ (desarrollar) a new app and ___ (testear) its features now.", answer: "are developing,  testing", translation: "Están desarrollando una nueva aplicación y probando sus funciones ahora.", tense: "Present Continuous" },
+      { text: "He ___ (asistir) the workshop and ___ (tomar) notes carefully.", answer: "is attending,  taking", translation: "Él está asistiendo al taller y tomando notas cuidadosamente.", tense: "Present Continuous" },
+      { text: "She ___ (colaborar) with the marketing team and ___ (enviar) the campaign plan.", answer: "is collaborating,  sending", translation: "Ella está colaborando con el equipo de marketing y enviando el plan de campaña.", tense: "Present Continuous" },
+      { text: "He ___ (seguir) the schedule and ___ (revisar) the progress daily.", answer: "is following, reviewing", translation: "Él está siguiendo el horario y revisando el progreso a diario.", tense: "Present Continuous" },
+      { text: "We ___ (buscar) for new clients and ___ (atender) current customers.", answer: "are looking, are attending", translation: "Estamos buscando nuevos clientes y atendiendo a los clientes actuales.", tense: "Present Continuous" },
+      { text: "They ___ (colaborar) on projects and ___ (mejorar) their skills constantly.", answer: "are collaborating,  improving", translation: "Están colaborando en proyectos y mejorando sus habilidades constantemente.", tense: "Present Continuous" },
+      { text: "She ___ (inspirar) the team and ___ (liderar) by example.", answer: "is inspiring, is leading", translation: "Ella está inspirando al equipo y liderando con el ejemplo.", tense: "Present Continuous" },
+      { text: "We ___ (aumentar) sales and ___ (expandir) our market reach.", answer: "are increasing,  expanding", translation: "Estamos aumentando las ventas y expandiendo nuestro alcance de mercado.", tense: "Present Continuous" },
+      { text: "You ___ (demostrar) commitment and ___ (cumplir/ ful...) your tasks.", answer: "are demonstrating,  fulfilling", translation: "Estás demostrando compromiso y cumpliendo tus tareas.", tense: "Present Continuous" },
+      { text: "I ___ (aprender) new techniques and ___ (practicar) them daily.", answer: "am learning,  practicing", translation: "Estoy aprendiendo nuevas técnicas y practicándolas diariamente.", tense: "Present Continuous" },
+      { text: "The company ___ (expandir) operations and ___ (contratar) more staff.", answer: "is expanding,  hiring", translation: "La empresa está expandiendo operaciones y contratando más personal.", tense: "Present Continuous" },
+      { text: "She ___ (promover) teamwork and ___ (alentar/encourager) a good communication.", answer: "is promoting,  encouraging", translation: "Ella está promoviendo el trabajo en equipo y alentando una buena comunicación.", tense: "Present Continuous" },
+      { text: "We ___ (adoptar) nuevas estrategias and ___ (implementar) mejoras.", answer: "are adopting, are implementing", translation: "Estamos adoptando nuevas estrategias y implementando mejoras.", tense: "Present Continuous" },
+      { text: "They ___ (no cumplir) deadlines and ___ (no responder)  to customers.", answer: "aren't meeting, aren't responding", translation: "No están cumpliendo los plazos ni respondiendo a los clientes.", tense: "Present Continuous" },
+      { text: "He ___ (no contestar) emails and ___ (no asistir) meetings.", answer: "isn't answering, isn't attending ", translation: "Él no está contestando correos ni asistiendo a reuniones.", tense: "Present Continuous" },
+      { text: "I ___ (no trabajar) on that project and ___ (no colaborar) con that team.", answer: "am not working, am not collaborating", translation: "No estoy trabajando en ese proyecto ni colaborando con ese equipo.", tense: "Present Continuous" },
+      { text: "We ___ (no recibir) feedback and ___ (no planear) changes yet.", answer: "aren't receiving, aren't planning", translation: "No estamos recibiendo retroalimentación ni planeando cambios todavía.", tense: "Present Continuous" },
+      { text: "They ___ (no seguir) guidelines and ___ (no tomar) responsability.", answer: "aren't following, aren't taking", translation: "No están siguiendo las pautas ni tomando responsabilidad.", tense: "Present Continuous" },
+      { text: "She ___ (no aceptar) criticism and ___ (no mejorar) her performance.", answer: "isn't accepting, isn't improving", translation: "Ella no está aceptando críticas ni mejorando su desempeño.", tense: "Present Continuous" },
+      { text: "I ___ (no considerar) options and ___ (no avanzar) con the project.", answer: "am not considering, am not moving", translation: "No estoy considerando opciones ni avanzando con el proyecto.", tense: "Present Continuous" },
+      { text: "They ___ (no participar) in the campaign and ___ (no colaborar) with others.", answer: "aren't participating, aren't collaborating", translation: "No están participando en la campaña ni colaborando con otros.", tense: "Present Continuous" },
+      { text: " ___ you ___ (asistir) the meeting and ___ (preparar) the agenda?", answer: "Are, attending, preparing", translation: "¿Estás asistiendo a la reunión y preparando la agenda?", tense: "Present Continuous" },
+      { text: " ___ they ___ (tener) technical problems and ___ (trabajar) on the solution?", answer: "Are, having, working", translation: "¿Tienen problemas técnicos y están trabajando en la solución?", tense: "Present Continuous" },
+      { text: " ___ you ___ (considerar) joining and ___ (participar) actively?", answer: "Are, considering, participating", translation: "¿Estás considerando unirte y participando activamente?", tense: "Present Continuous" },
+      { text: "___she ___ (liderar) the project and ___ (supervisar) the team?", answer: "Is, leading, supervising", translation: "¿Ella está liderando el proyecto y supervisando al equipo?", tense: "Present Continuous" },
+      { text: "___ we ___ (hacer) progress and ___ (alcanzar) goals?", answer: "Are, making, achieving", translation: "¿Estamos haciendo progreso y alcanzando metas?", tense: "Present Continuous" }
+    ],
+    perfect: [
+      { text: "I ___ (vivir) in Geneva many years.", answer: "have live", translation: "He vivido muchos años en Ginebra.", tense: "Present Perfect" },
+      { text: "We ___ (construis) and ___ (mejorar) our relationship over the last year.", answer: "have built, improved", translation: "Hemos construido y mejorado nuestra relación durante el último año.", tense: "Present Perfect" },
+      { text: "She ___ (escribir) several emails and ___ (enviar) important documents this week.", answer: "has written, sent", translation: "Ella ha escrito varios correos electrónicos y enviado documentos importantes esta semana.", tense: "Present Perfect" },
+      { text: "They ___ (conocer) new friends and ___ (asistir) social events recently.", answer: "have met, attended", translation: "Han conocido nuevos amigos y asistido a eventos sociales recientemente.", tense: "Present Perfect" },
+      { text: "He ___ (romper) his bad habits and ___ (elegir) a healthier lifestyle.", answer: "has broken, chosen", translation: "Él ha roto sus malos hábitos y elegido un estilo de vida más saludable.", tense: "Present Perfect" },
+      { text: "I ___ (incrementar) my exercise routine and ___ (completar) a marathon.", answer: "have increased, completed", translation: "He aumentado mi rutina de ejercicios y completado un maratón.", tense: "Present Perfect" },
+      { text: "We ___ (ir) on several trips and ___ (probar) new cuisines this year.", answer: "have gone, tried", translation: "Hemos ido a varios viajes y probado nuevas cocinas este año.", tense: "Present Perfect" },
+      { text: "They ___ (leer) many books and ___ (hablar/dis...) them in the club.", answer: "have read, discussed", translation: "Han leído muchos libros y los han discutido en el club.", tense: "Present Perfect" },
+      { text: "He ___ (comprar) a new house and ___ (pagar) off most of the mortgage.", answer: "has bought, paid", translation: "Él ha comprado una casa nueva y pagado la mayor parte de la hipoteca.", tense: "Present Perfect" },
+      { text: "I ___ (aprender) a lot and ___ (aplicar) new skills at work.", answer: "have learned, applied", translation: "He aprendido mucho y aplicado nuevas habilidades en el trabajo.", tense: "Present Perfect" },
+      { text: "We ___ (desarrollar) a strong friendship and ___ (apoyar) each other.", answer: "have developed, supported", translation: "Hemos desarrollado una amistad fuerte y nos hemos apoyado mutuamente.", tense: "Present Perfect" },
+      { text: "She ___ (tomar) on new responsibilities and ___ (gestionar/m...) complex projects.", answer: "has taken, managed", translation: "Ella ha asumido nuevas responsabilidades y gestionado proyectos complejos.", tense: "Present Perfect" },
+      { text: "They ___ (encontrar) solutions and ___ (arreglar) many issues recently.", answer: "have found, fixed", translation: "Han encontrado soluciones y arreglado muchos problemas recientemente.", tense: "Present Perfect" },
+      { text: "He ___ (conducir) to different cities and ___ (visitar) important clients.", answer: "has driven, visited", translation: "Él ha conducido a diferentes ciudades y visitado clientes importantes.", tense: "Present Perfect" },
+      { text: "I ___ (pensar) about the future and ___ (planear) my next steps carefully.", answer: "have thought, planned", translation: "He pensado en el futuro y planeado mis próximos pasos cuidadosamente.", tense: "Present Perfect" },
+      { text: "We ___ (enviar) invitations and ___ (recibir) many confirmations.", answer: "have sent, received", translation: "Hemos enviado invitaciones y recibido muchas confirmaciones.", tense: "Present Perfect" },
+      { text: "She ___ (hablar) at conferences and ___ (inspirar) many people.", answer: "has spoken, inspired", translation: "Ella ha hablado en conferencias e inspirado a mucha gente.", tense: "Present Perfect" },
+      { text: "They ___ (construir) their careers and ___ (lograr) important goals.", answer: "have built, achieved", translation: "Han construido sus carreras y alcanzado metas importantes.", tense: "Present Perfect" },
+      { text: "He ___ (escribir) reports and ___ (revisar) all the data carefully.", answer: "has written, reviewed", translation: "Él ha escrito informes y revisado todos los datos cuidadosamente.", tense: "Present Perfect" },
+      { text: "I ___ (asistir) workshops and ___ (aprender) new techniques.", answer: "have attended, learned", translation: "He asistido a talleres y aprendido nuevas técnicas.", tense: "Present Perfect" },
+      { text: "We ___ (no acabar) the project and ___ (no entregar) the final report yet.", answer: "haven't finished, haven't submitted", translation: "No hemos terminado el proyecto ni enviado el informe final todavía.", tense: "Present Perfect" },
+      { text: "She ___ (no mejorar) her English skills and ___ (no practicar) speaking enough.", answer: "hasn't improved, hasn't practiced", translation: "Ella no ha mejorado sus habilidades en inglés ni practicado suficiente el habla.", tense: "Present Perfect" },
+      { text: "They ___ (no cumplir/m...) the deadlines and ___ (no responder) to client emails.", answer: "haven't met, haven't responded", translation: "No han cumplido los plazos ni respondido a los correos de los clientes.", tense: "Present Perfect" },
+      { text: "He ___  (not rest) properly recently.", answer: " hasn't rested", translation: "Él no ha  descansado adecuadamente últimamente.", tense: "Present Perfect" },
+      { text: "I ___ (no ver) her since the meeting and ___ (no oir) any news.", answer: "haven't seen, haven't heard", translation: "No la he visto desde la reunión ni he escuchado ninguna noticia.", tense: "Present Perfect" },
+      { text: "___ you ___ (escribir) your essay and ___ (entregar) it on time?", answer: "Have, written, submitted", translation: "¿Has escrito tu ensayo y lo has entregado a tiempo?", tense: "Present Perfect" },
+      { text: "___ she ___ (leer) the latest report and ___ (aprovar) the budget?", answer: "Has, read, approved", translation: "¿Ha leído el último informe y aprobado el presupuesto?", tense: "Present Perfect" },
+      { text: "___ they ___ (conocer/m...) new clients and ___ (construir) good relationships?", answer: "Have, met, built", translation: "¿Han conocido nuevos clientes y construido buenas relaciones?", tense: "Present Perfect" },
+      { text: "___ he ___ (take) the training and ___ (completar) the certification?", answer: "Has, taken, completed", translation: "¿Ha hecho la formación y completado la certificación?", tense: "Present Perfect" },
+      { text: "___ we ___ (planificar) the event and ___ (enviar) invitations yet?", answer: "Have, planned, sent", translation: "¿Hemos planeado el evento y enviado las invitaciones ya?", tense: "Present Perfect" }
+     ]
+  },
+  past: {
+    simple: [
+      { text: "She ___ (entregar) the final report and ___ (explicar) her conclusions clearly.", answer: "submitted, explained", translation: "Ella entregó el informe final y explicó claramente sus conclusiones.", tense: "Past Simple" },
+      { text: "They ___ (cumplir/ m..) all the requirements and ___ (superar/exc...) expectations.", answer: "met, exceeded", translation: "Cumplieron todos los requisitos y superaron las expectativas.", tense: "Past Simple" },
+      { text: "He ___ (preparar) thoroughly but ___ (olvidar) to include a key detail.", answer: "prepared, forgot", translation: "Se preparó a fondo pero olvidó incluir un detalle clave.", tense: "Past Simple" },
+      { text: "I ___ (asistir) the conference and ___ (aprender) a lot from the keynote speakers.", answer: "attended, learned", translation: "Asistí a la conferencia y aprendí mucho de los ponentes principales.", tense: "Past Simple" },
+      { text: "We ___ (proponer) new ideas and ___ (discutir) them in the meeting.", answer: "proposed, discussed", translation: "Propusimos nuevas ideas y las discutimos en la reunión.", tense: "Past Simple" },
+      { text: "She ___ (responder) all the questions and ___ (demostrar/sh....) confidence.", answer: "answered, showed", translation: "Respondió todas las preguntas y mostró confianza.", tense: "Past Simple" },
+      { text: "They ___ (decidir) on the project leader and ___ (elegir) her unanimously.", answer: "decided, chose", translation: "Decidieron sobre el líder del proyecto y la eligieron por unanimidad.", tense: "Past Simple" },
+      { text: "He ___ (consultar) with the team before he ___ (tomar) a decision.", answer: "consulted, took", translation: "Consultó con el equipo antes de tomar una decisión.", tense: "Past Simple" },
+      { text: "We ___ (crear) a new system and ___ (ahorrar) a lot of time.", answer: "created, saved", translation: "Creamos un nuevo sistema y ahorramos mucho tiempo.", tense: "Past Simple" },
+      { text: "She ___ (asumir) responsibility and ___ (gestionar) the situation well.", answer: "took, handled", translation: "Asumió la responsabilidad y gestionó bien la situación.", tense: "Past Simple" },
+      { text: "They ___ (presentar) their ideas and ___ (recibir) positive feedback.", answer: "presented, received", translation: "Presentaron sus ideas y recibieron comentarios positivos.", tense: "Past Simple" },
+      { text: "He ___ (cometer) an error and ___ (admitir) it immediately.", answer: "made, admitted", translation: "Cometió un error y lo admitió de inmediato.", tense: "Past Simple" },
+      { text: "We ___ (analizar) the market and ___ (identificar) opportunities.", answer: "analysed, identified", translation: "Analizamos el mercado e identificamos oportunidades.", tense: "Past Simple" },
+      { text: "She ___ (solucionar) the problem and ___ (documentar) the process.", answer: "solved, documented", translation: "Solucionó el problema y documentó el proceso.", tense: "Past Simple" },
+      { text: "I ___ (investigar) the matter and ___ (reportar) the results.", answer: "investigated, reported", translation: "Investigué el asunto e informé de los resultados.", tense: "Past Simple" },
+      { text: "Did you ___ (resolver) the issue or ___ (dejar/ l....) it for later?", answer: "solve, leave", translation: "¿Resolviste el problema o lo dejaste para más tarde?", tense: "Past Simple" },
+      { text: "Did she ___ (entender) the instructions and ___ (seguir) them accurately?", answer: "understand, follow", translation: "¿Entendió las instrucciones y las siguió con precisión?", tense: "Past Simple" },
+      { text: "Did you ___ (consultar) the manager and ___ (seguir) his advice?", answer: "consult, follow", translation: "¿Consultaste al gerente y seguiste su consejo?", tense: "Past Simple" },
+      { text: "Did they ___ (lograr/ach....) the goals and ___ (evaluar/ as....) their performance?", answer: "achieve, assess", translation: "¿Lograron los objetivos y evaluaron su rendimiento?", tense: "Past Simple" },
+      { text: "Did he ___ (revisar) the document before he ___ (firmar) it?", answer: "review, sign", translation: "¿Revisó el documento antes de firmarlo?", tense: "Past Simple" },
+      { text: "Did she ___ (asistir) to the meeting and ___ (tomar) notes?", answer: "attend, take", translation: "¿Asistió a la reunión y tomó notas?", tense: "Past Simple" },
+      { text: "Did you ___ (ver) the announcement and ___ (responder/re...) on time?", answer: "see, reply", translation: "¿Viste el anuncio y respondiste a tiempo?", tense: "Past Simple" },
+      { text: "Did they ___ (acordar) on the strategy and ___ (empezar) immediately?", answer: "agree, start", translation: "¿Acordaron la estrategia y empezaron de inmediato?", tense: "Past Simple" },
+      { text: "Did we ___ (cubrir) all the topics and ___ (terminar) on schedule?", answer: "cover, finish", translation: "¿Cubrimos todos los temas y terminamos a tiempo?", tense: "Past Simple" },
+      { text: "Did he ___ (presentar) the report and ___ (convencer) the audience?", answer: "present, convince", translation: "¿Presentó el informe y convenció a la audiencia?", tense: "Past Simple" },
+      { text: "She ___ (no terminar) the presentation due to lack of time.", answer: "didn't finish", translation: "Ella no terminó la presentación por falta de tiempo.", tense: "Past Simple" },
+      { text: "He ___ (no darse cuenta/re....) of the importance of the deadline.", answer: "didn't realize", translation: "Él no se dio cuenta de la importancia de la fecha límite.", tense: "Past Simple" },
+      { text: "They ___ (no dar) any feedback after the session.", answer: "didn't give", translation: "No dieron ninguna retroalimentación después de la sesión.", tense: "Past Simple" },
+      { text: "I ___ (no ver) your email until this morning.", answer: "didn't see", translation: "No vi tu correo hasta esta mañana.", tense: "Past Simple" },
+      { text: "We ___ (no cubrir) all the key points in the presentation.", answer: "didn't cover", translation: "No cubrimos todos los puntos clave en la presentación.", tense: "Past Simple" }
+     ],
+    continuous: [
+      { text: "She ___ (trabajar) on the report while he ___ (preparar) the presentation.", answer: "was working, preparing", translation: "Ella estaba trabajando en el informe mientras él preparaba la presentación.", tense: "Past Continuous" },
+      { text: "They ___ (revisar) the data and ___ (discutir) the findings during the meeting.", answer: "were reviewing, discussing", translation: "Estaban revisando los datos y discutiendo los resultados durante la reunión.", tense: "Past Continuous" },
+      { text: "I ___ (intentar) to fix the issue while my colleague ___ (buscar) for a solution.", answer: "was trying, looking", translation: "Yo intentaba solucionar el problema mientras mi colega buscaba una solución.", tense: "Past Continuous" },
+      { text: "He ___ (escribir) emails and ___ (llamar) clients at the same time.", answer: "was writing,  calling", translation: "Él estaba escribiendo correos y llamando clientes al mismo tiempo.", tense: "Past Continuous" },
+      { text: "We ___ (cenar) when she arrived..", answer: "were having dinner", translation: "Estábamos cenando cuando ella llego.", tense: "Past Continuous" },
+      { text: "She ___ (preparar) the report while they ___ (hacer) the analyses.", answer: "was preparing, were doing", translation: "Ella estaba preparando el informe mientras ellos hacían los análisis.", tense: "Past Continuous" },
+      { text: "They ___ (esperar) for the meeting to start when the phone ___ (sonar).", answer: "were waiting, rang", translation: "Estaban esperando que la reunión comenzara cuando sonó el teléfono.", tense: "Past Continuous" },
+      { text: "He ___ (revisar) the documents and ___ (corregir) the mistakes at the same time.", answer: "was reviewing, was correcting", translation: "Él estaba revisando los documentos y corrigiendo los errores al mismo tiempo.", tense: "Past Continuous" },
+      { text: "We ___ (ver) the presentation and ___ (tomar) notes when the lights went out.", answer: "were watching, were taking", translation: "Estábamos viendo la presentación y tomando notas cuando se fue la luz.", tense: "Past Continuous" },
+      { text: "She ___ (hablar) with the client while ___ (escribir) a report.", answer: "was speaking, was writing", translation: "Ella estaba hablando con el cliente mientras escribía un informe.", tense: "Past Continuous" },
+      { text: "They ___ (probar) the product and ___ (recopilar) user data.", answer: "were testing, were collecting", translation: "Estaban probando el producto y recopilando datos de usuarios.", tense: "Past Continuous" },
+      { text: "He ___ (explicar) the strategy and ___ (responder) questions during the meeting.", answer: "was explaining, was answering", translation: "Él estaba explicando la estrategia y respondiendo preguntas durante la reunión.", tense: "Past Continuous" },
+      { text: "I ___ (editar) the document while she ___ (revisar) the changes.", answer: "was editing, was reviewing", translation: "Yo estaba editando el documento mientras ella revisaba los cambios.", tense: "Past Continuous" },
+      { text: "We ___ (desarrollar) the plan and ___ (preparar) the presentation at the same time.", answer: "were developing, were preparing", translation: "Estábamos desarrollando el plan y preparando la presentación al mismo tiempo.", tense: "Past Continuous" },
+      { text: "She ___ (hablar) too fast and ___ (confundir) the audience.", answer: "was speaking, confusing", translation: "Ella hablaba demasiado rápido y confundía a la audiencia.", tense: "Past Continuous" },
+      { text: "What ___ you ___ (hacer) and ___ (pensar) when the alarm went off?", answer: "were, doing,  thinking", translation: "¿Qué estabas haciendo y pensando cuando sonó la alarma?", tense: "Past Continuous" },
+      { text: "___ she ___ (hablar) and ___ (escribir) when you called her?", answer: "was, speaking,  writing", translation: "¿Estaba hablando y escribiendo cuando la llamaste?", tense: "Past Continuous" },
+      { text: "___ they ___ (revisar) the documents and ___ (discutir) the points together?", answer: "were, reviewing, discussing", translation: "¿Estaban revisando los documentos y discutiendo los puntos juntos?", tense: "Past Continuous" },
+      { text: "___ you ___ (prestar) attention and ___ (tomar) notes during the presentation?", answer: "were, paying, taking", translation: "¿Estabas prestando atención y tomando notas durante la presentación?", tense: "Past Continuous" },
+      { text: "Where ___ he ___ (trabajar) and ___ (hablar) when the problem occurred?", answer: "was, working,  speaking", translation: "¿Dónde estaba trabajando y hablando cuando surgió el problema?", tense: "Past Continuous" },
+      { text: "___ she ___ (actualizar) the system and ___ (comunicar) the changes before it failed?", answer: "was, updating,  communicating", translation: "¿Estaba actualizando el sistema y comunicando los cambios antes de que fallara?", tense: "Past Continuous" },
+      { text: "Who ___ you ___ (hablar) to and ___ (esperar) for when I entered the room?", answer: "were, talking,  waiting", translation: "¿Con quién estabas hablando y a quién estabas esperando cuando entré en la sala?", tense: "Past Continuous" },
+      { text: "___ they ___ (aplicar) the changes and ___ (verificar) the results when you checked?", answer: "were, applying, checking", translation: "¿Estaban aplicando los cambios y verificando los resultados cuando revisaste?", tense: "Past Continuous" },
+      { text: "___ he ___ (practicar) his presentation and ___ (organizar) his notes at that time?", answer: "was, practicing, organizing", translation: "¿Estaba practicando su presentación y organizando sus notas en ese momento?", tense: "Past Continuous" },
+      { text: "___ you ___ (revisar) documents and ___ (enviar) emails during the call?", answer: "were you reviewing, were, sending", translation: "¿Estabas revisando documentos y enviando correos durante la llamada?", tense: "Past Continuous" },
+      { text: "I ___ (no revisar) the report nor ___ (no preparar) the presentation when the call came.", answer: "wasn't checking, wasn't preparing", translation: "No estaba revisando el informe ni preparando la presentación cuando llegó la llamada.", tense: "Past Continuous" },
+      { text: "She ___ (no escuchar) nor ___ (no participar) in the team discussion.", answer: "wasn't listening, wasn't participating", translation: "Ella no estaba escuchando ni participando en la discusión del equipo.", tense: "Past Continuous" },
+      { text: "They ___ (no trabajar) on the project nor ___ (no responder) emails yet.", answer: "weren't working, weren't answering", translation: "No estaban trabajando en el proyecto ni respondiendo a los correos todavía.", tense: "Past Continuous" },
+      { text: "He ___ (no hacer) the changes nor ___ (no revisar) the documents when I asked.", answer: "wasn't making, wasn't checking", translation: "Él no estaba haciendo los cambios ni revisando los documentos cuando le pregunté.", tense: "Past Continuous" },
+      { text: "We ___ (no ver) the presentation nor ___ (no tomar) notes at that moment.", answer: "weren't watching, weren't taking", translation: "No estábamos viendo la presentación ni tomando notas en ese momento.", tense: "Past Continuous" }
+],
+    perfect: [
+      { text: "We ___ (construir) a new office before the deadline.", answer: "had built", translation: "Habíamos construido una nueva oficina antes de la fecha límite.", tense: "Past Perfect" },
+      { text: "She ___ (escribir) the report before the meeting started.", answer: "had written", translation: "Ella había escrito el informe antes de que empezara la reunión.", tense: "Past Perfect" },
+      { text: "They ___ (romper) the contract before negotiations.", answer: "had broken", translation: "Habían roto el contrato antes de las negociaciones.", tense: "Past Perfect" },
+      { text: "He ___ (hacer) several changes by the time we arrived.", answer: "had made", translation: "Él había hecho varios cambios para cuando llegamos.", tense: "Past Perfect" },
+      { text: "I ___ (ver) the results before the presentation.", answer: "had seen", translation: "Había visto los resultados antes de la presentación.", tense: "Past Perfect" },
+      { text: "We ___ (decidir) to postpone the meeting earlier.", answer: "had decided", translation: "Habíamos decidido aplazar la reunión antes.", tense: "Past Perfect" },
+      { text: "She ___ (tomar) the initiative before anyone else.", answer: "had taken", translation: "Ella había tomado la iniciativa antes que nadie.", tense: "Past Perfect" },
+      { text: "They ___ (ganar) an important client by then.", answer: "had won", translation: "Habían ganado un cliente importante para entonces.", tense: "Past Perfect" },
+      { text: "He ___ (venir) to the office before the deadline.", answer: "had come", translation: "Él había venido a la oficina antes de la fecha límite.", tense: "Past Perfect" },
+      { text: "I ___ (esconder) the confidential info before the audit.", answer: "had hidden", translation: "Había escondido la información confidencial antes de la auditoría.", tense: "Past Perfect" },
+      { text: "We ___ (poner) all the data in the final report.", answer: "had put", translation: "Habíamos puesto todos los datos en el informe final.", tense: "Past Perfect" },
+      { text: "She ___ (traer) new ideas before the meeting started.", answer: "had brought", translation: "Ella había traído nuevas ideas antes de que empezara la reunión.", tense: "Past Perfect" },
+      { text: "They ___ (sentir) concern about the delay.", answer: "had felt", translation: "Habían sentido preocupación por el retraso.", tense: "Past Perfect" },
+      { text: "He ___ (dejar) the old system before upgrading.", answer: "had quit", translation: "Él había dejado el sistema antiguo antes de actualizar.", tense: "Past Perfect" },
+      { text: "I ___ (leer) all necessary documents before the meeting.", answer: "had read", translation: "Había leído todos los documentos necesarios antes de la reunión.", tense: "Past Perfect" },
+      { text: "We ___ (no romper) the client's confidentiality.", answer: "hadn't broken", translation: "No habíamos roto la confidencialidad del cliente.", tense: "Past Perfect" },
+      { text: "She ___ (no venir) to the meeting yet.", answer: "hadn't come", translation: "Ella no había venido a la reunión aún.", tense: "Past Perfect" },
+      { text: "They ___ (no encontrar) a solution yet.", answer: "hadn't found", translation: "No habían encontrado una solución todavía.", tense: "Past Perfect" },
+      { text: "He ___ (no decir) anything about the problem.", answer: "hadn't said", translation: "Él no había dicho nada sobre el problema.", tense: "Past Perfect" },
+      { text: "I ___ (no escribir) the email yet.", answer: "hadn't written", translation: "No había escrito el correo electrónico aún.", tense: "Past Perfect" },
+      { text: "We ___ (no tomar) a final decision.", answer: "hadn't taken", translation: "No habíamos tomado una decisión final.", tense: "Past Perfect" },
+      { text: "She ___ (no traer) the reports to the office.", answer: "hadn't brought", translation: "Ella no había traído los informes a la oficina.", tense: "Past Perfect" },
+      { text: "They ___ (no ganar) the bid.", answer: "hadn't won", translation: "No habían ganado la licitación.", tense: "Past Perfect" },
+      { text: "___ you ___ (ver) the new design before the meeting?", answer: "Had, seen", translation: "¿Habías visto el nuevo diseño antes de la reunión?", tense: "Past Perfect" },
+      { text: "___ she ___ (hacer) the requested changes?", answer: "Had, made", translation: "¿Había hecho los cambios solicitados?", tense: "Past Perfect" },
+      { text: "___ they ___ (romper) any rules during the process?", answer: "Had, broken", translation: "¿Habían roto alguna regla durante el proceso?", tense: "Past Perfect" },
+      { text: "___ he ___ (leer) the full report?", answer: "Had, read", translation: "¿Había leído el informe completo?", tense: "Past Perfect" },
+      { text: "___ we ___ (poner) the information in the system?", answer: "Had, put", translation: "¿Habíamos puesto la información en el sistema?", tense: "Past Perfect" },
+      { text: "___ I ___ (decidir) correctly?", answer: "Had, decided", translation: "¿Había decidido correctamente?", tense: "Past Perfect" },
+      { text: "___ she ___ (venir) to the meeting that day?", answer: "Had, come", translation: "¿Había venido ella a la reunión ese día?", tense: "Past Perfect" }
+]
+  },
+  future: { 
+    simple: [
+      { text: "She ___ (asistir) the conference and ___ (presentar) a keynote speech next week.", answer: "will attend / will present", translation: "Ella asistirá a la conferencia y presentará un discurso principal la próxima semana.", tense: "Future Simple" },
+      { text: "They ___ (lanzar) the new product and ___ (empezar) start the marketing campaign next month.", answer: "will launch / will start", translation: "Ellos lanzarán el nuevo producto y empezarán la campaña de marketing el próximo mes.", tense: "Future Simple" },
+      { text: "I ___ (enviar) the final report and ___ (confirmar) the meeting date by Friday.", answer: "will send / will confirm", translation: "Enviaré el informe final y confirmaré la fecha de la reunión para el viernes.", tense: "Future Simple" },
+      { text: "He ___ (se reunir) with the client and ___ (discutir) discuss the contract details later today.", answer: "will meet / will discuss", translation: "Él se reunirá con el cliente y discutirá los detalles del contrato más tarde hoy.", tense: "Future Simple" },
+      { text: "We ___ (resolver) the problem and ___ (implementar) implement a solution soon.", answer: "will solve / will implement", translation: "Resolveremos el problema e implementaremos una solución pronto.", tense: "Future Simple" },
+      { text: "They ___ (evaluar) the proposal and ___ (tomar) make a decision by next week.", answer: "will evaluate / will make", translation: "Ellos evaluarán la propuesta y tomarán una decisión para la próxima semana.", tense: "Future Simple" },
+      { text: "She ___ (llamar) the supplier as soon as she ___ (llegar).", answer: "will call / arrives", translation: "Ella llamará al proveedor tan pronto como llegue.", tense: "Future Simple" },
+      { text: "I ___ (empezar) the presentation after lunch.", answer: "will start", translation: "Empezaré la presentación después del almuerzo.", tense: "Future Simple" },
+      { text: "We ___ (revisar) the documents before ___ (enviar).", answer: "will review / sending", translation: "Revisaremos los documentos antes de enviarlos.", tense: "Future Simple" },
+      { text: "They ___ (notificar) the team once the task ___ (estar) is complete.", answer: "will notify / is", translation: "Notificarán al equipo una vez que la tarea esté completa.", tense: "Future Simple" },
+      { text: "She ___ (explicar) the plan and ___ (responder) answer all questions during the meeting.", answer: "will explain / will answer", translation: "Ella explicará el plan y responderá todas las preguntas durante la reunión.", tense: "Future Simple" },
+      { text: "I ___ (terminar) the project before the deadline.", answer: "will finish", translation: "Terminaré el proyecto antes de la fecha límite.", tense: "Future Simple" },
+      { text: "He ___ (solicitar) for the position and ___ (preparar) prepare his portfolio next week.", answer: "will apply / will prepare", translation: "Él solicitará el puesto y preparará su portafolio la próxima semana.", tense: "Future Simple" },
+      { text: "They ___ (se encontrar) us at the entrance and ___ (entrar) enter together.", answer: "will meet / will enter", translation: "Ellos se encontrarán con nosotros en la entrada y entrarán juntos.", tense: "Future Simple" },
+      { text: "She ___ (enviar) the invoice and ___ (confirmar) confirm the payment details later today.", answer: "will send / will confirm", translation: "Ella enviará la factura y confirmará los detalles de pago más tarde hoy.", tense: "Future Simple" },
+      { text: "I ___ (no responder) to emails until tomorrow morning.", answer: "won't reply", translation: "No responderé correos hasta mañana por la mañana.", tense: "Future Simple" },
+      { text: "She ___ (no asistir) the meeting because she ___ (no estar) won’t be available.", answer: "won't attend / won't be", translation: "Ella no asistirá a la reunión porque no estará disponible.", tense: "Future Simple" },
+      { text: "They ___ (no entregar) the report on time due to unexpected delays.", answer: "won't deliver", translation: "Ellos no entregarán el informe a tiempo debido a retrasos inesperados.", tense: "Future Simple" },
+      { text: "He ___ (no participar) in the training and ___ (no completar) won’t complete the module.", answer: "won't participate / won't complete", translation: "Él no participará en la capacitación ni completará el módulo.", tense: "Future Simple" },
+      { text: "We ___ (no cumplir) the deadline without additional resources.", answer: "won't meet", translation: "No cumpliremos con la fecha límite sin recursos adicionales.", tense: "Future Simple" },
+      { text: "I ___ (no aceptaré) the proposal as it is.", answer: "won't accept", translation: "No aceptaré la propuesta tal como está.", tense: "Future Simple" },
+      { text: "She ___ (no terminar) the task by today.", answer: "won't finish", translation: "Ella no terminará la tarea hoy.", tense: "Future Simple" },
+      { text: "They ___ (no tomar) a decision without more data.", answer: "won't make", translation: "Ellos no tomarán una decisión sin más datos.", tense: "Future Simple" },
+      { text: "___ you ___ (asistir) the meeting tomorrow?", answer: "will attend", translation: "¿Vas a asistir a la reunión mañana?", tense: "Future Simple" },
+      { text: "___ they ___ (enviar) the documents by Friday?", answer: "will send", translation: "¿Ellos enviarán los documentos para el viernes?", tense: "Future Simple" },
+      { text: "What ___ she ___ (presentar) at the conference?", answer: "will present", translation: "¿Qué presentará ella en la conferencia?", tense: "Future Simple" },
+      { text: "___ he ___ (contactar) the client soon?", answer: "will contact", translation: "¿Él contactará al cliente pronto?", tense: "Future Simple" },
+      { text: "___ we ___ (necesitar) more time for the project?", answer: "will need", translation: "¿Necesitaremos más tiempo para el proyecto?", tense: "Future Simple" },
+      { text: "When ___ you ___ (terminar) the proposal?", answer: "will finish", translation: "¿Cuándo terminarás la propuesta?", tense: "Future Simple" },
+      { text: "___ they ___ (aprobar) the budget next week?", answer: "will approve", translation: "¿Aprobarán el presupuesto la próxima semana?", tense: "Future Simple" }
+    ],
+    continuous: [
+      { text: "She ___ the report ___ (escribir) by tomorrow.", answer: "will have been / writing", translation: "Ella habrá estado escribiendo el informe para mañana.", tense: "Future Perfect Continuous" },
+      { text: "They ___ the system updates ___ (implementar) last week.", answer: "will have been / implementing", translation: "Ellos habrán estado implementando las actualizaciones del sistema desde la semana pasada.", tense: "Future Perfect Continuous" },
+      { text: "I ___ the training sessions ___ (asistir) all month.", answer: "will have been / attending", translation: "Habré estado asistiendo a las sesiones de entrenamiento todo el mes.", tense: "Future Perfect Continuous" },
+      { text: "He ___ the new software ___ (probar) several hours.", answer: "will have been / testing", translation: "Él habrá estado probando el nuevo software durante varias horas.", tense: "Future Perfect Continuous" },
+      { text: "We ___ customer feedback ___ (recoger) consistently.", answer: "will have been / collecting", translation: "Habremos estado recopilando comentarios de clientes de forma constante.", tense: "Future Perfect Continuous" },
+      { text: "She ___ marketing strategies ___ (desarrollar) all quarter.", answer: "will have been / developing", translation: "Ella habrá estado desarrollando estrategias de marketing durante todo el trimestre.", tense: "Future Perfect Continuous" },
+      { text: "They ___ the project milestones ___ (cumplir) successfully.", answer: "will have been / meeting", translation: "Ellos habrán estado cumpliendo los hitos del proyecto con éxito.", tense: "Future Perfect Continuous" },
+      { text: "I ___ new ideas ___ (generar) the campaign all week.", answer: "will have been / brainstorming", translation: "Habré estado generando nuevas ideas para la campaña toda la semana.", tense: "Future Perfect Continuous" },
+      { text: "He ___ client meetings ___ (asistir) last Monday.", answer: "will have been / attending", translation: "Él habrá estado asistiendo a reuniones con clientes desde el lunes pasado.", tense: "Future Perfect Continuous" },
+      { text: "We ___ software bugs ___ (arreglar) hours.", answer: "will have been / fixing", translation: "Habremos estado arreglando errores del software durante horas.", tense: "Future Perfect Continuous" },
+      { text: "She ___ the new guidelines ___ (seguir) effectively.", answer: "won't have been / following", translation: "Ella no habrá estado siguiendo las nuevas directrices de manera efectiva.", tense: "Future Perfect Continuous" },
+      { text: "They ___ the software updates ___ (aplicar) correctly.", answer: "won't have been / applying", translation: "Ellos no habrán estado aplicando las actualizaciones del software correctamente.", tense: "Future Perfect Continuous" },
+      { text: "I ___ the client’s requests ___ (atender) properly.", answer: "won't have been / addressing", translation: "No habré estado atendiendo adecuadamente las solicitudes del cliente.", tense: "Future Perfect Continuous" },
+      { text: "He ___ the project deadlines ___ (cumplir).", answer: "won't have been / meeting", translation: "Él no habrá estado cumpliendo los plazos del proyecto.", tense: "Future Perfect Continuous" },
+      { text: "We ___ the database ___ (mantener) regularly.", answer: "won't have been / maintaining", translation: "No habremos estado manteniendo la base de datos regularmente.", tense: "Future Perfect Continuous" },
+      { text: "She ___ communication ___ (mantener) the stakeholders.", answer: "won't have been / maintaining", translation: "Ella no habrá estado manteniendo la comunicación con las partes interesadas.", tense: "Future Perfect Continuous" },
+      { text: "They ___ the agreed strategy ___ (seguir) effectively.", answer: "won't have been / following", translation: "Ellos no habrán estado siguiendo la estrategia acordada de manera efectiva.", tense: "Future Perfect Continuous" },
+      { text: "I ___ the marketing budget ___ (gestionar) efficiently.", answer: "won't have been / managing", translation: "No habré estado gestionando el presupuesto de marketing eficientemente.", tense: "Future Perfect Continuous" },
+      { text: "Will she ___ the customer feedback ___ (revisar) Friday?", answer: "have been / reviewing", translation: "¿Habrá estado revisando los comentarios de los clientes para el viernes?", tense: "Future Perfect Continuous" },
+      { text: "Will they ___ the new product launch ___ (preparar) time?", answer: "have been / preparing", translation: "¿Habrán estado preparando el lanzamiento del nuevo producto a tiempo?", tense: "Future Perfect Continuous" },
+      { text: "Will he ___ the team’s progress ___ (rastrear) the meeting?", answer: "have been / tracking", translation: "¿Habrá estado rastreando el progreso del equipo durante la reunión?", tense: "Future Perfect Continuous" },
+      { text: "Will you ___ the budget reports ___ (compilar) week?", answer: "have been / compiling", translation: "¿Habrás estado compilando los informes presupuestarios la próxima semana?", tense: "Future Perfect Continuous" },
+      { text: "Will we ___ the project risks ___ (evaluar) the deadline?", answer: "have been / assessing", translation: "¿Habremos estado evaluando los riesgos del proyecto antes de la fecha límite?", tense: "Future Perfect Continuous" },
+      { text: "Will she ___ the new software updates ___ (instalar) consistently?", answer: "have been / installing", translation: "¿Habrá estado instalando las nuevas actualizaciones del software de manera constante?", tense: "Future Perfect Continuous" },
+      { text: "Will they ___ different solutions ___ (explorar) the problem?", answer: "have been / exploring", translation: "¿Habrán estado explorando diferentes soluciones al problema?", tense: "Future Perfect Continuous" }
+    ],
+    perfect: [
+       { text: "She ___ the new protocol for hours by then.", answer: "will have been practicing", translation: "Ella habrá estado practicando el nuevo protocolo durante horas para entonces.", tense: "Future Perfect Continuous" },
+       { text: "They ___ their skills before the assessment.", answer: "will have been refining", translation: "Ellos habrán estado perfeccionando sus habilidades antes de la evaluación.", tense: "Future Perfect Continuous" },
+       { text: "I ___ the onboarding process all morning.", answer: "will have been facilitating", translation: "Habré estado facilitando el proceso de incorporación toda la mañana.", tense: "Future Perfect Continuous" },
+       { text: "He ___ technical documents for several hours.", answer: "will have been translating", translation: "Él habrá estado traduciendo documentos técnicos durante varias horas.", tense: "Future Perfect Continuous" },
+       { text: "We ___ progress consistently by the end of the month.", answer: "will have been tracking", translation: "Habremos estado rastreando el progreso de forma constante para fin de mes.", tense: "Future Perfect Continuous" },
+       { text: "She ___ the guidelines for weeks.", answer: "will have been updating", translation: "Ella habrá estado actualizando las directrices durante semanas.", tense: "Future Perfect Continuous" },
+       { text: "They ___ solutions since last quarter.", answer: "will have been proposing", translation: "Ellos habrán estado proponiendo soluciones desde el último trimestre.", tense: "Future Perfect Continuous" },
+       { text: "I ___ clients from Europe for several days.", answer: "will have been assisting", translation: "Habré estado asistiendo a clientes de Europa durante varios días.", tense: "Future Perfect Continuous" },
+       { text: "He ___ data points since early morning.", answer: "will have been mapping", translation: "Él habrá estado mapeando puntos de datos desde temprano en la mañana.", tense: "Future Perfect Continuous" },
+       { text: "We ___ internal processes during the transition.", answer: "will have been streamlining", translation: "Habremos estado optimizando procesos internos durante la transición.", tense: "Future Perfect Continuous" },
+       { text: "She ___ the product vision for months.", answer: "will have been shaping", translation: "Ella habrá estado moldeando la visión del producto durante meses.", tense: "Future Perfect Continuous" },
+       { text: "They ___ relevant contacts all week.", answer: "will have been networking", translation: "Ellos habrán estado estableciendo contactos relevantes toda la semana.", tense: "Future Perfect Continuous" },
+       { text: "I ___ the campaign content since last week.", answer: "will have been drafting", translation: "Habré estado redactando el contenido de la campaña desde la semana pasada.", tense: "Future Perfect Continuous" },
+       { text: "He ___ user behavior for the last three hours.", answer: "will have been observing", translation: "Él habrá estado observando el comportamiento del usuario durante las últimas tres horas.", tense: "Future Perfect Continuous" },
+       { text: "We ___ the tool in different scenarios.", answer: "will have been testing", translation: "Habremos estado probando la herramienta en diferentes escenarios.", tense: "Future Perfect Continuous" },
+       { text: "She ___ the onboarding experience all day.", answer: "will have been designing", translation: "Ella habrá estado diseñando la experiencia de incorporación todo el día.", tense: "Future Perfect Continuous" },
+       { text: "They ___ compliance with the new law.", answer: "will have been ensuring", translation: "Ellos habrán estado asegurando el cumplimiento con la nueva ley.", tense: "Future Perfect Continuous" },
+       { text: "I ___ insights from user surveys.", answer: "will have been gathering", translation: "Habré estado recopilando ideas de encuestas a usuarios.", tense: "Future Perfect Continuous" },
+       { text: "He ___ market reactions all week.", answer: "will have been analyzing", translation: "Él habrá estado analizando las reacciones del mercado toda la semana.", tense: "Future Perfect Continuous" },
+       { text: "We ___ the new platform since launch.", answer: "will have been supporting", translation: "Habremos estado dando soporte a la nueva plataforma desde el lanzamiento.", tense: "Future Perfect Continuous" },
+       { text: "I ___ on minor issues during the critical phase.", answer: "won't have been focusing", translation: "No habré estado enfocándome en asuntos menores durante la fase crítica.", tense: "Future Perfect Continuous" },
+       { text: "She ___ the right data sets by the deadline.", answer: "won't have been analyzing", translation: "Ella no habrá estado analizando los conjuntos de datos correctos para la fecha límite.", tense: "Future Perfect Continuous" },
+       { text: "They ___ the agreed strategy for long enough.", answer: "won't have been following", translation: "Ellos no habrán estado siguiendo la estrategia acordada el tiempo suficiente.", tense: "Future Perfect Continuous" },
+       { text: "We ___ the project's objectives effectively.", answer: "won't have been meeting", translation: "No habremos estado cumpliendo los objetivos del proyecto de manera efectiva.", tense: "Future Perfect Continuous" },
+       { text: "He ___ the key stakeholders consistently.", answer: "won't have been updating", translation: "Él no habrá estado actualizando a las partes interesadas clave de manera constante.", tense: "Future Perfect Continuous" },
+       { text: "They ___ the database according to protocol.", answer: "won't have been maintaining", translation: "Ellos no habrán estado manteniendo la base de datos según el protocolo.", tense: "Future Perfect Continuous" },
+       { text: "I ___ the documentation with sufficient detail.", answer: "won't have been preparing", translation: "No habré estado preparando la documentación con suficiente detalle.", tense: "Future Perfect Continuous" },
+       { text: "Will she ___ the customer feedback reports regularly?", answer: "have been reviewing", translation: "¿Habrá estado revisando los informes de retroalimentación del cliente regularmente?", tense: "Future Perfect Continuous" },
+       { text: "Will they ___ the core modules before the update?", answer: "have been testing", translation: "¿Habrán estado probando los módulos principales antes de la actualización?", tense: "Future Perfect Continuous" },
+       { text: "Will he ___ new suppliers throughout the quarter?", answer: "have been contacting", translation: "¿Habrá estado contactando nuevos proveedores durante el trimestre?", tense: "Future Perfect Continuous" },
+       { text: "Will you ___ the new procedures before implementation?", answer: "have been studying", translation: "¿Habrás estado estudiando los nuevos procedimientos antes de su implementación?", tense: "Future Perfect Continuous" },
+       { text: "Will we ___ user feedback during the beta phase?", answer: "have been collecting", translation: "¿Habremos estado recopilando comentarios de los usuarios durante la fase beta?", tense: "Future Perfect Continuous" },
+       { text: "Will she ___ the KPIs effectively over the semester?", answer: "have been tracking", translation: "¿Habrá estado rastreando los KPI de manera efectiva durante el semestre?", tense: "Future Perfect Continuous" },
+       { text: "Will they ___ different approaches to the issue?", answer: "have been exploring", translation: "¿Habrán estado explorando diferentes enfoques al problema?", tense: "Future Perfect Continuous" },
+       { text: "Will we ___ expectations appropriately during the rollout?", answer: "have been setting", translation: "¿Habremos estado estableciendo expectativas adecuadamente durante el despliegue?", tense: "Future Perfect Continuous" }
+     ]
+  },
+      
+    gerund: [
+       { text: "She enjoys ___ new strategies at work.", answer: "developing", translation: "A ella le gusta desarrollar nuevas estrategias en el trabajo.", tense: "Gerund" },
+       { text: "They suggested ___ the meeting until Monday.", answer: "postponing", translation: "Ellos sugirieron posponer la reunión hasta el lunes.", tense: "Gerund" },
+       { text: "I’m interested in ___ more about the topic.", answer: "learning", translation: "Estoy interesado en aprender más sobre el tema.", tense: "Gerund" },
+       { text: "He admitted ___ the mistake during the call.", answer: "making", translation: "Él admitió haber cometido el error durante la llamada.", tense: "Gerund" },
+       { text: "We discussed ___ a new supplier.", answer: "hiring", translation: "Discutimos contratar a un nuevo proveedor.", tense: "Gerund" },
+       { text: "She avoided ___ the question directly.", answer: "answering", translation: "Ella evitó responder la pregunta directamente.", tense: "Gerund" },
+       { text: "They are considering ___ the product line.", answer: "expanding", translation: "Están considerando expandir la línea de productos.", tense: "Gerund" },
+       { text: "I don’t mind ___ overtime this week.", answer: "working", translation: "No me importa trabajar horas extra esta semana.", tense: "Gerund" },
+       { text: "He’s responsible for ___ the event.", answer: "organizing", translation: "Él es responsable de organizar el evento.", tense: "Gerund" },
+       { text: "We look forward to ___ your feedback.", answer: "receiving", translation: "Esperamos recibir su retroalimentación.", tense: "Gerund" },
+       { text: "She kept ___ despite the interruptions.", answer: "talking", translation: "Ella siguió hablando a pesar de las interrupciones.", tense: "Gerund" },
+       { text: "They insisted on ___ the presentation again.", answer: "repeating", translation: "Insistieron en repetir la presentación.", tense: "Gerund" },
+       { text: "I’m used to ___ under pressure.", answer: "working", translation: "Estoy acostumbrado a trabajar bajo presión.", tense: "Gerund" },
+       { text: "He’s good at ___ technical problems.", answer: "solving", translation: "Él es bueno resolviendo problemas técnicos.", tense: "Gerund" },
+       { text: "We avoided ___ unnecessary risks.", answer: "taking", translation: "Evitamos tomar riesgos innecesarios.", tense: "Gerund" },
+       { text: "She mentioned ___ the contract early.", answer: "terminating", translation: "Ella mencionó terminar el contrato anticipadamente.", tense: "Gerund" },
+       { text: "They succeeded in ___ a better deal.", answer: "negotiating", translation: "Lograron negociar un mejor trato.", tense: "Gerund" },
+       { text: "I can’t stand ___ in long meetings.", answer: "sitting", translation: "No soporto estar sentado en reuniones largas.", tense: "Gerund" },
+       { text: "He apologized for ___ late.", answer: "arriving", translation: "Él se disculpó por llegar tarde.", tense: "Gerund" },
+       { text: "We spent hours ___ the proposal.", answer: "reviewing", translation: "Pasamos horas revisando la propuesta.", tense: "Gerund" },
+       { text: "She’s interested in ___ her role.", answer: "expanding", translation: "Ella está interesada en ampliar su rol.", tense: "Gerund" },
+       { text: "They thanked us for ___ on time.", answer: "delivering", translation: "Nos agradecieron por entregar a tiempo.", tense: "Gerund" },
+       { text: "I avoided ___ the topic during the meeting.", answer: "mentioning", translation: "Evité mencionar el tema durante la reunión.", tense: "Gerund" },
+       { text: "He’s afraid of ___ the opportunity.", answer: "losing", translation: "Él tiene miedo de perder la oportunidad.", tense: "Gerund" },
+       { text: "We’re committed to ___ high standards.", answer: "maintaining", translation: "Estamos comprometidos a mantener altos estándares.", tense: "Gerund" }
+     ]
+    };
+
+  
+  // Función para ir a la pantalla de subcategorías
+function goToSubcategories(category) {
+  if (category === 'gerund') {
+    // No mostrar subcategorías, iniciar el juego directamente
+    startCategoryGame(category, null);  // subcategory null o vacío
+    return;
+  }
+
+  // Para las demás categorías con subcategorías
+  subcategoryScreen.classList.remove('hidden');
+  categoryScreen.classList.add('hidden');
+  gameScreen.classList.add('hidden');
+  subcategoryTitle.textContent = `Subcategorías de ${capitalize(category)}`;
+  subcategoryButtons.innerHTML = '';
+
+  const colorPalettes = {
+    present: ['bg-blue-800 hover:bg-blue-1000', 'bg-blue-500 hover:bg-blue-700', 'bg-sky-300 hover:bg-blue-400'],
+    past: ['bg-red-800 hover:bg-red-1000', 'bg-red-600 hover:bg-red-700', 'bg-red-500 hover:bg-red-600'],
+    future: ['bg-purple-800 hover:bg-purple-1000', 'bg-purple-600 hover:bg-purple-700', 'bg-purple-500 hover:bg-purple-600'],
+  };
+
+  const subcategories = Object.keys(allSentences[category]);
+  const palette = colorPalettes[category] || ['bg-cyan-500 hover:bg-cyan-800'];
+
+  subcategories.forEach((subcategory, index) => {
+    const button = document.createElement('button');
+    const colorClass = palette[index % palette.length];
+    button.textContent = capitalize(subcategory);
+    button.className = `text-white px-6 py-3 rounded-xl m-2 w-full ${colorClass}`;
+    button.onclick = () => startCategoryGame(category, subcategory);
+    subcategoryButtons.appendChild(button);
+  });
+}
+
+// Función para iniciar el juego de una subcategoría
+function startCategoryGame(category, subcategory) {
+  resetGameCounters();
+
+  if (category === 'gerund') {
+    // Gerund es un array simple
+    currentSentences = shuffleArray([...allSentences[category]]);
+  } else if (subcategory) {
+    currentSentences = shuffleArray([...allSentences[category][subcategory]]);
+  } else {
+    // En caso de que subcategory sea null en otra categoría, vaciar
+    currentSentences = [];
+  }
+
+  currentCategory = category;
+  currentSubcategory = subcategory || '';
+
+  categoryTitle.textContent = subcategory ? `${capitalize(category)} - ${capitalize(subcategory)}` : capitalize(category);
+
+  subcategoryScreen.classList.add('hidden');
+  categoryScreen.classList.add('hidden');
+  gameScreen.classList.remove('hidden');
+
+  loadSentence();
+}
+
+// Función para iniciar el juego mixto
+function startMixtGame() {
+  resetGameCounters();
+  currentSentences = [];
+
+  const allCategories = ['present', 'past', 'future', 'gerund'];
+  allCategories.forEach(category => {
+    if (Array.isArray(allSentences[category])) {
+      allSentences[category].forEach(sentence => {
+        currentSentences.push({ ...sentence, category });
+      });
+    } else {
+      const subcategories = Object.keys(allSentences[category]);
+      subcategories.forEach(subcategory => {
+        const sentences = allSentences[category][subcategory];
+        sentences.forEach(sentence => {
+          currentSentences.push({ ...sentence, category });
+        });
+      });
+    }
+  });
+
+  currentSentences = shuffleArray(currentSentences).slice(0, 20); // ← aquí limitamos a 20
+
+  currentCategory = 'Mixt';
+  currentSubcategory = '';
+  categoryTitle.textContent = 'Mixt';
+
+  subcategoryScreen.classList.add('hidden');
+  categoryScreen.classList.add('hidden');
+  gameScreen.classList.remove('hidden');
+
+  loadSentence();
+}
+
+// Función para cargar la oración actual
+function loadSentence() {
+  if (current >= currentSentences.length) {
+    finishGame();
+    return;
+  }
+  const sentence = currentSentences[current];
+  sentenceEl.textContent = sentence.text;
+
+  // Actualiza contador
+  questionCounterEl.textContent = `Pregunta ${current + 1} de ${currentSentences.length}`;
+
+  inputEl.value = '';
+  feedbackEl.textContent = '';
+  feedbackEl.classList.remove('text-green-500', 'text-red-500');
+  translationEl.textContent = sentence.translation || '';
+  translationEl.classList.add('hidden');
+  clueEl.textContent = '';
+  clueEl.classList.add('hidden');
+  inputEl.disabled = false;
+  inputEl.focus();
+
+  // Re-habilitar botón comprobar
+  const checkBtn = document.getElementById('check-button');
+  if (checkBtn) { checkBtn.disabled = false; checkBtn.classList.remove('opacity-50'); }
+
+  document.getElementById('next-button').disabled = true;
+  document.getElementById('next-button').classList.add('opacity-50', 'cursor-not-allowed');
+}
+
+// Función para avanzar a la siguiente oración
+function nextSentence() {
+  current++;
+  loadSentence();
+}
+
+// Función para verificar la respuesta
+function checkAnswer() {
+  const userAnswer = inputEl.value.trim().toLowerCase();
+  if (!userAnswer) return;
+
+  // Deshabilitar botón comprobar
+  const checkBtn = document.getElementById('check-button');
+  if (checkBtn) { checkBtn.disabled = true; checkBtn.classList.add('opacity-50'); }
+
+  const sentence = currentSentences[current];
+  const correctAnswer = (sentence.answer || sentence.correct || '').toLowerCase();
+
+  if (userAnswer === correctAnswer) {
+    correctCount++;
+    feedbackEl.textContent = '¡Correcto!';
+    feedbackEl.classList.remove('text-red-500');
+    feedbackEl.classList.add('text-green-500');
+  } else {
+    incorrectCount++;
+    feedbackEl.textContent = `Incorrecto. La respuesta correcta es: "${correctAnswer}"`;
+    feedbackEl.classList.remove('text-green-500');
+    feedbackEl.classList.add('text-red-500');
+
+    if (!failedQuestionsByCategory[currentCategory]) {
+      failedQuestionsByCategory[currentCategory] = [];
+    }
+    failedQuestionsByCategory[currentCategory].push(sentence);
+  }
+
+  correctEl.textContent = correctCount;
+  incorrectEl.textContent = incorrectCount;
+
+  translationEl.classList.remove('hidden');
+
+  if (sentence.structure) {
+    clueEl.textContent = `Pista: ${sentence.structure}`;
+    clueEl.classList.remove('hidden');
+  } else {
+    clueEl.textContent = '';
+    clueEl.classList.add('hidden');
+  }
+
+  // **Aquí habilitamos el botón para avanzar**
+  const nextButton = document.getElementById('next-button');
+  nextButton.disabled = false;
+  nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
+}
+
+// Función para mostrar pista manualmente (botón "Pista")
+function showClue() {
+  const sentence = currentSentences[current];
+  if (sentence.tense) {
+    clueEl.textContent = `Tiempo verbal: ${sentence.tense}`;
+  } else if (sentence.structure) {
+    clueEl.textContent = `Pista: ${sentence.structure}`;
+  } else {
+    clueEl.textContent = 'No hay pista disponible para esta oración.';
+  }
+  clueEl.classList.remove('hidden');
+}
+
+// Función para volver al menú principal
+function goToMainMenu() {
+  current = 0;
+  resetGameCounters();
+  gameScreen.classList.add('hidden');
+  subcategoryScreen.classList.add('hidden');
+  categoryScreen.classList.remove('hidden');
+}
+
+// Función para finalizar el juego
+function finishGame() {
+  alert(`Juego terminado.\nCorrectas: ${correctCount}\nIncorrectas: ${incorrectCount}`);
+
+  // Si hay preguntas falladas, pregunta si quieren repetir
+  if (failedQuestionsByCategory[currentCategory] && failedQuestionsByCategory[currentCategory].length > 0) {
+    const retry = confirm("¿Quieres intentar las preguntas falladas?");
+    if (retry) {
+      retryFailedQuestions();
+      return;
+    }
+  }
+
+  goToMainMenu();
+}
+
+// Función para reiniciar contadores
+function resetGameCounters() {
+  current = 0;
+  correctCount = 0;
+  incorrectCount = 0;
+  correctEl.textContent = '0';
+  incorrectEl.textContent = '0';
+}
+
+// Función para capitalizar texto
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+
+// Función para traduccir
+function showTranslation() {
+  const sentence = currentSentences[current];
+  if (sentence.translation) {
+    translationEl.textContent = sentence.translation;
+    translationEl.classList.remove('hidden');
+  } else {
+    translationEl.textContent = 'No hay traducción disponible.';
+    translationEl.classList.remove('hidden');
+  }
+}
+
+// Función para rehacer las preguntas falladas solo de la categoría actual
+function retryFailedQuestions() {
+  const failed = failedQuestionsByCategory[currentCategory];
+
+  if (!failed || failed.length === 0) {
+    alert("No hay preguntas falladas para intentar nuevamente.");
+    return;
+  }
+
+  currentSentences = shuffleArray([...failed]);
+
+  current = 0;
+  correctCount = 0;
+  incorrectCount = 0;
+  correctEl.textContent = correctCount;
+  incorrectEl.textContent = incorrectCount;
+  totalQuestions = currentSentences.length;
+  totalQuestionsEl.textContent = totalQuestions;
+
+  // Vaciar preguntas falladas para no repetir infinitamente
+  failedQuestionsByCategory[currentCategory] = [];
+
+  loadSentence();
+}
+
+
+// Función para barajar un array (Fisher-Yates)
+function shuffleArray(array) {
+  let currentIndex = array.length, temporaryValue, randomIndex;
+
+  while (0 !== currentIndex) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
+}
+
+// Evento para verificar la respuesta cuando el usuario presiona Enter
+inputEl.addEventListener('keyup', function(e) {
+  if (e.key === 'Enter') {
+    const nextBtn = document.getElementById('next-button');
+    if (!nextBtn.disabled) {
+      nextSentence();
+    } else {
+      checkAnswer();
+    }
+  }
+});
+  </script>
+    
+</body>
+</html>
